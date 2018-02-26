@@ -114,9 +114,9 @@ class FeedReader extends NxusModule {
 
   /**
    * Register a feed
-   * @param (string) ident identifier for this feed
-   * @param (string) url feed URL
-   * @param (object) options tbd
+   * @param {string} ident identifier for this feed
+   * @param {string} url feed URL
+   * @param {object} options tbd
    */
   feed(ident, url, options={}) {
     this._feeds[ident] = Object.assign({url, ident}, options)
@@ -124,8 +124,8 @@ class FeedReader extends NxusModule {
 
   /**
    * Process feed items
-   * @param (string) [ident] identifier for this feed
-   * @param (function) handler (item, ident) handler function
+   * @param {string} [ident] identifier for this feed
+   * @param {function} handler (item, ident) handler function
    */
   process(ident, handler=null) {
     if (handler == null) {
@@ -141,7 +141,7 @@ class FeedReader extends NxusModule {
 
   /**
    * Fetch one or all feeds
-   * @param (string) [ident] identifier for this feed
+   * @param {string} [ident] identifier for this feed
    */
   fetch(ident) {
     return this._callOrQueue('fetch', {ident})

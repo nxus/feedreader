@@ -78,12 +78,9 @@ Register a feed
 
 **Parameters**
 
--   `ident`  
--   `url`  
--   `options`   (optional, default `{}`)
--   `null`  (string) ident identifier for this feed
--   `null`  (string) url feed URL
--   `null`  (object) options tbd
+-   `ident` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** identifier for this feed
+-   `url` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** feed URL
+-   `options` **[object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** tbd (optional, default `{}`)
 
 #### process
 
@@ -91,10 +88,8 @@ Process feed items
 
 **Parameters**
 
--   `ident`  
--   `handler`   (optional, default `null`)
--   `null`  (string) [ident] identifier for this feed
--   `null`  (function) handler (item, ident) handler function
+-   `ident` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** identifier for this feed
+-   `handler` **[function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)** (item, ident) handler function (optional, default `null`)
 
 #### fetch
 
@@ -102,8 +97,7 @@ Fetch one or all feeds
 
 **Parameters**
 
--   `ident`  
--   `null`  (string) [ident] identifier for this feed
+-   `ident` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** identifier for this feed
 
 #### enableQueues
 
