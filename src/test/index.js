@@ -15,16 +15,17 @@ describe("FeedReader", function() {
 
   describe("Parse a feed", () => {
     let fr, items = []
-    before(function(done) {
+    before(async function(done) {
       
       let stream = fs.createReadStream(__dirname+"/news.xml")
 
       fr = new FeedReader()
+      fr.config.enableReadTracking = false
       fr._feeds['test'] = {ident: 'test', url: 'http://example.com'}
       fr._processors['test'] = [(i, id) => {
         items.push(i)
       }]
-      let parser = fr._createParser('local-path', 'test', done, (err) => {
+      let parser = await fr._createParser('local-path', 'test', done, (err) => {
         console.log("Err", err)
         done(err)
       })
@@ -40,7 +41,7 @@ describe("FeedReader", function() {
     before(async () => {
       
       fr = new FeedReader()
-      fr = new FeedReader()
+      fr.config.enableReadTracking = false
       fr._feeds['test'] = {ident: 'test', url: 'https://news.google.com/news/rss/'}
       fr._processors['test'] = [(i, id) => {
         items.push(i)

@@ -12,8 +12,9 @@
  * ## Configuration Options
  *
  *     "feedreader": {
- *       "interval": 0 // seconds
- *       "enableQueues": false
+ *       "interval": 0, // seconds
+ *       "enableQueues": false,
+ *       "enableReadTracking": true,
  *       "feeds"": {
  *          name: URL
  *       }
@@ -80,12 +81,13 @@ import request from 'request'
 import FeedParser from 'feedparser'
 import _ from 'underscore'
 
-import {application as app, NxusModule} from 'nxus-core'
+import {application as app} from 'nxus-core'
+import {HasModels} from 'nxus-storage'
 
 /**
  * Feedreader module for parsing and processing RSS/Atom Feeds
  */
-class FeedReader extends NxusModule {
+class FeedReader extends HasModels {
   constructor() {
     super()
 
@@ -102,15 +104,34 @@ class FeedReader extends NxusModule {
         }
       }
     })
+
+    this._intervalId = null
+    app.onceAfter('launch', ::this._setupTimer)
+    app.once('stop', () => {
+      if(this._intervalId) clearInterval(this._intervalId)
+    })
+     
+    
     
   }
+
   defaultConfig() {
     return {
       interval: 0,
       enableQueues: false,
+      enableReadTracking: true,
       feeds: {}
     }
   }
+
+  /**
+   * Creates the timer, set to run at the interval specified by config
+   */
+  _setupTimer() {
+    if (this.config.interval > 0) {
+      this._intervalId = setInterval(::this.fetch, this.config.interval)
+    }
+  }  
 
   /**
    * Register a feed
@@ -168,21 +189,21 @@ class FeedReader extends NxusModule {
     }
   }
 
-  async _fetch({ident}) {
+  _fetch({ident}) {
     if (ident) {
       return this._callOrQueue('fetchFeed', this._feeds[ident])
     } else {
-      for (let key in this._feeds) {
-        this._callOrQueue('fetchFeed', this._feeds[key])
-      }
+      return Promise.map(this._feeds, (key) => {
+        return this._callOrQueue('fetchFeed', this._feeds[key])
+      })
     }
   }
 
   _fetchFeed({url, ident}) {
     // streaming response pipes is discouraged with request-promise, so raw request lib here
 
-    return new Promise((resolve, reject) => {
-      let feedparser = this._createParser(url, ident, resolve, reject)
+    return new Promise(async (resolve, reject) => {
+      let feedparser = await this._createParser(url, ident, resolve, reject)
       
       this.log.debug("Fetching feed", ident, url)
       let req = request(url)
@@ -197,19 +218,47 @@ class FeedReader extends NxusModule {
     })
   }
 
-  _createParser(url, ident, resolve, reject) {
+  async _createParser(url, ident, resolve, reject) {
+    let readTracking = this.config.enableReadTracking
     let feedparser = new FeedParser()
     feedparser.on('error', reject)
-    feedparser.on('end', () => {
+    let meta
+    feedparser.on('end', async () => {
       this.log.debug("Finished parsing feed", ident, url)
+      if (this.config.enableReadTracking) {
+        await this.models['feedreader-feedread'].createOrUpdate({url}, {url, meta})
+      }
       resolve()
+    })
+
+    let lastRead
+    if (readTracking) {
+      last = await this.models['feedreader-feedread'].findOne({url})
+      if (last) {
+        if (last.meta && last.meta.date) {
+          lastRead = last.meta.date
+        } else {
+          lastRead = last.updatedAt
+        }
+      }
+    }
+
+    let skip = false
+    feedparser.on('meta', (m) => {
+      meta = m
+      skip = lastRead && lastRead >= meta.date
+      if (skip) {
+        this.log.debug("Skipping", url, "last read on", lastRead, "now", meta.date)
+      }
     })
     
     let _callOrQueue = ::this._callOrQueue
     feedparser.on('readable', function() {
       let item
       while (item = this.read()) {
-        _callOrQueue("processItem", {item, ident})
+        if (!readTracking || (!skip && item.date >= lastRead)) {
+          _callOrQueue("processItem", {item, ident})
+        }
       }
     })
 

@@ -27,6 +27,7 @@
     "bluebird": "^3.3.5",
     "feedparser": "^2.2.9",
     "nxus-core": "^4.0.0",
+    "nxus-storage": "^4.0.5",
     "nxus-worker-queue": "^4.0.0",
     "request": "^2.83.0",
     "underscore": "^1.8.3"
