@@ -16,9 +16,10 @@ Use feedparser to parse and process RSS/Atom feeds.
 
 ### Configuration Options
 
-    "feedreader": {
-      "interval": 0 // seconds
-      "enableQueues": false
+    "feed_reader": {
+      "interval": 0, // seconds
+      "enableQueues": false,
+      "enableReadTracking": true,
       "feeds"": {
          name: URL
       }
@@ -68,9 +69,13 @@ during initialization call:
 
 ### FeedReader
 
-**Extends NxusModule**
+**Extends HasModels**
 
 Feedreader module for parsing and processing RSS/Atom Feeds
+
+#### \_setupTimer
+
+Creates the timer, set to run at the interval specified by config
 
 #### feed
 
@@ -81,6 +86,14 @@ Register a feed
 -   `ident` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** identifier for this feed
 -   `url` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** feed URL
 -   `options` **[object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** tbd (optional, default `{}`)
+
+#### unfeed
+
+De-register a feed
+
+**Parameters**
+
+-   `ident` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** identifier for this feed
 
 #### process
 
