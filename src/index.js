@@ -11,7 +11,7 @@
  *
  * ## Configuration Options
  *
- *     "feedreader": {
+ *     "feed_reader": {
  *       "interval": 0, // seconds
  *       "enableQueues": false,
  *       "enableReadTracking": true,
@@ -98,7 +98,7 @@ class FeedReader extends HasModels {
       if (this.config.enableQueues) {
         this._setupQueues()
       }
-      if (Object.keys(this.config.feeds).length > 0) {
+      if (this.config.feeds && Object.keys(this.config.feeds).length > 0) {
         for (let key in this.config.feeds) {
           this.feed(key, this.config.feeds[key])
         }
@@ -115,7 +115,7 @@ class FeedReader extends HasModels {
     
   }
 
-  defaultConfig() {
+  _defaultConfig() {
     return {
       interval: 0,
       enableQueues: false,
@@ -129,7 +129,8 @@ class FeedReader extends HasModels {
    */
   _setupTimer() {
     if (this.config.interval > 0) {
-      this._intervalId = setInterval(::this.fetch, this.config.interval)
+      this.fetch()
+      this._intervalId = setInterval(::this.fetch, this.config.interval*1000)
     }
   }  
 
@@ -140,7 +141,16 @@ class FeedReader extends HasModels {
    * @param {object} options tbd
    */
   feed(ident, url, options={}) {
+    this.log.debug("Feed registered", ident, url)
     this._feeds[ident] = Object.assign({url, ident}, options)
+  }
+  /**
+   * De-register a feed
+   * @param {string} ident identifier for this feed
+   */
+  unfeed(ident) {
+    this.log.debug("Feed de-registered", ident)
+    delete this._feeds[ident]
   }
 
   /**
@@ -193,8 +203,8 @@ class FeedReader extends HasModels {
     if (ident) {
       return this._callOrQueue('fetchFeed', this._feeds[ident])
     } else {
-      return Promise.map(this._feeds, (key) => {
-        return this._callOrQueue('fetchFeed', this._feeds[key])
+      return Promise.map(Object.values(this._feeds), (feed) => {
+        return this._callOrQueue('fetchFeed', feed)
       })
     }
   }
@@ -233,7 +243,7 @@ class FeedReader extends HasModels {
 
     let lastRead
     if (readTracking) {
-      last = await this.models['feedreader-feedread'].findOne({url})
+      let last = await this.models['feedreader-feedread'].findOne({url})
       if (last) {
         if (last.meta && last.meta.date) {
           lastRead = last.meta.date
@@ -246,7 +256,9 @@ class FeedReader extends HasModels {
     let skip = false
     feedparser.on('meta', (m) => {
       meta = m
-      skip = lastRead && lastRead >= meta.date
+      if (lastRead && lastRead >= meta.date) {
+        skip = true
+      }
       if (skip) {
         this.log.debug("Skipping", url, "last read on", lastRead, "now", meta.date)
       }
@@ -256,9 +268,11 @@ class FeedReader extends HasModels {
     feedparser.on('readable', function() {
       let item
       while (item = this.read()) {
-        if (!readTracking || (!skip && item.date >= lastRead)) {
-          _callOrQueue("processItem", {item, ident})
+        if (readTracking && !skip && lastRead && item.date >= lastRead) {
+          this.log.debug("Skipping feed item", item.guid, "because", item.date, "is older than", lastRead)
+          continue
         }
+        _callOrQueue("processItem", {item, ident})
       }
     })
 
